@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "test-dataguard"
-version = "0.1.0"
+version = "0.2.0"
 description = "Simple regex-based sensitive data masking"
 readme = "README.md"
 license = { text = "MIT" }
@@ -23,9 +23,9 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/your-org/dataguard"
-Repository = "https://github.com/your-org/dataguard"
-Issues = "https://github.com/your-org/dataguard/issues"
+Homepage = "https://github.com/mysoly/dataguard"
+Repository = "https://github.com/mysoly/dataguard"
+Issues = "https://github.com/mysoly/dataguard/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/dataguard"]

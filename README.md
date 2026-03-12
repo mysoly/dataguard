@@ -5,7 +5,7 @@ Simple regex-based sensitive data masking for Python.
 ## Installation
 
 ```bash
-pip install dataguard
+pip install test-dataguard
 ```
 
 ## Usage
