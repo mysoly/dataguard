@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "test-dataguard"
-version = "0.2.0"
+dynamic = ["version"]
 description = "Simple regex-based sensitive data masking"
 readme = "README.md"
 license = { text = "MIT" }
@@ -26,6 +26,9 @@ classifiers = [
 Homepage = "https://github.com/mysoly/dataguard"
 Repository = "https://github.com/mysoly/dataguard"
 Issues = "https://github.com/mysoly/dataguard/issues"
+
+[tool.hatch.version]
+path = "src/dataguard/__init__.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/dataguard"]

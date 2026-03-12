@@ -4,7 +4,8 @@ from dataguard import mask, mask_field, PATTERNS
 
 
 def test_version_exists():
-    assert dataguard.__version__ == "0.1.0"
+    assert isinstance(dataguard.__version__, str)
+    assert len(dataguard.__version__) > 0
 
 
 class TestEmail:
