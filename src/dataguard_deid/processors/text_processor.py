@@ -56,9 +56,8 @@ def analyze(text: str, config: Optional[Dict] = None) -> List[Dict]:
     Returns
     -------
     list[dict]
-        Each dict: ``{"type": str, "sub_label": str, "start": int, "end": int, "score": float}``
-        ``"type"`` is the group label (e.g. ``"FINANCIAL"``).
-        ``"sub_label"`` is the original entity type (e.g. ``"IBAN_CODE"``).
+        Each dict: ``{"type": str, "start": int, "end": int, "score": float}``
+        ``"type"`` is the group label (e.g. ``"FINANCIAL"`` for IBAN, ``"IDENTIFIER"`` for BSN).
     """
     cfg = config or {}
     _validate_config(cfg, _VALID_ANALYZE_KEYS, "analyze")
@@ -76,7 +75,6 @@ def analyze(text: str, config: Optional[Dict] = None) -> List[Dict]:
     return [
         {
             "type": LABEL_GROUPS.get(r.entity_type, r.entity_type),
-            "sub_label": r.entity_type,
             "start": r.start,
             "end": r.end,
             "score": round(r.score, 4),
@@ -105,8 +103,8 @@ def guard(text: str, config: Optional[Dict] = None) -> Dict:
     -------
     dict
         ``guarded_text`` – text with PII replaced using group labels in brackets.
-        ``findings``     – list of finding dicts, each with ``"type"`` (group)
-                           and ``"sub_label"`` (original entity type).
+        ``findings``     – list of finding dicts, each with ``"type"`` (group label),
+                           ``"start"``, ``"end"``, ``"score"``, ``"original_text"``.
     """
     cfg = config or {}
     _validate_config(cfg, _VALID_GUARD_KEYS, "guard")

@@ -42,7 +42,7 @@ Public interface::
 from types import SimpleNamespace
 from typing import Any, Dict, List, Optional
 
-__version__ = "1.6.0"
+__version__ = "1.7.0"
 
 from dataguard_deid.processors.text_processor import analyze as _analyze, guard as _guard
 from dataguard_deid.processors.doc_processor import (
