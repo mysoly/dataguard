@@ -8,7 +8,6 @@ from typing import Dict, List, Optional
 
 from dataguard_deid.analysis import analyzer as _analyzer
 from dataguard_deid.anonymization.engine import GuardEngine as _GuardEngine, _VALID_MODES
-from dataguard_deid.config.labels import LABEL_GROUPS
 
 _VALID_ANALYZE_KEYS = frozenset({"set_entities", "score_threshold", "custom_patterns"})
 _VALID_GUARD_KEYS = _VALID_ANALYZE_KEYS | frozenset({"mode"})
@@ -57,7 +56,6 @@ def analyze(text: str, config: Optional[Dict] = None) -> List[Dict]:
     -------
     list[dict]
         Each dict: ``{"type": str, "start": int, "end": int, "score": float}``
-        ``"type"`` is the group label (e.g. ``"FINANCIAL"`` for IBAN, ``"IDENTIFIER"`` for BSN).
     """
     cfg = config or {}
     _validate_config(cfg, _VALID_ANALYZE_KEYS, "analyze")
@@ -74,7 +72,7 @@ def analyze(text: str, config: Optional[Dict] = None) -> List[Dict]:
 
     return [
         {
-            "type": LABEL_GROUPS.get(r.entity_type, r.entity_type),
+            "type": r.entity_type,
             "start": r.start,
             "end": r.end,
             "score": round(r.score, 4),
@@ -102,9 +100,8 @@ def guard(text: str, config: Optional[Dict] = None) -> Dict:
     Returns
     -------
     dict
-        ``guarded_text`` – text with PII replaced using group labels in brackets.
-        ``findings``     – list of finding dicts, each with ``"type"`` (group label),
-                           ``"start"``, ``"end"``, ``"score"``, ``"original_text"``.
+        ``guarded_text`` – text with PII replaced.
+        ``findings``     – list of finding dicts.
     """
     cfg = config or {}
     _validate_config(cfg, _VALID_GUARD_KEYS, "guard")
@@ -133,5 +130,4 @@ def guard(text: str, config: Optional[Dict] = None) -> Dict:
         mode=mode,
         extra_entities=extra_entities or None,
         anonymize_list=anonymize_list or None,
-        label_mapping=LABEL_GROUPS,
     )

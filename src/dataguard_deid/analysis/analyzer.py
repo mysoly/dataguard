@@ -41,14 +41,7 @@ from dataguard_deid.recognizers.base import (
 from dataguard_deid.types import Pattern, RecognizerResult
 
 from dataguard_deid.config.entities import ALL_NL_ENTITY_TYPES
-from dataguard_deid.config.labels import LABEL_GROUPS
 from dataguard_deid.recognizers import ALL_REGEX_RECOGNIZERS, NlNerRecognizer
-
-# Inverted mapping: group label → list of sub-labels
-# e.g. {"FINANCIAL": ["IBAN_CODE", "CREDIT_CARD", "CVV"], ...}
-_GROUP_TO_SUBS: Dict[str, List[str]] = {}
-for _sub, _group in LABEL_GROUPS.items():
-    _GROUP_TO_SUBS.setdefault(_group, []).append(_sub)
 from dataguard_deid.analysis.overlap_resolver import resolve_overlaps, merge_entities
 from dataguard_deid.analysis.context_awareness import DutchContextEnhancer
 
@@ -305,28 +298,16 @@ def resolve_entities(
     ignore = set_entities.get("ignore")
     custom_names: List[str] = [p["name"] for p in (custom_patterns or []) if "name" in p]
 
-    def _expand(names: List[str]) -> List[str]:
-        """Expand any group labels (e.g. FINANCIAL) to their sub-labels."""
-        expanded: List[str] = []
-        for name in names:
-            if name in _GROUP_TO_SUBS:
-                expanded.extend(_GROUP_TO_SUBS[name])
-            else:
-                expanded.append(name)
-        return expanded
-
     if keep is not None:
         if not keep:
             return []
-        expanded_keep = _expand(keep)
-        built_in = [e for e in ALL_NL_ENTITY_TYPES if e in expanded_keep]
-        extras = [e for e in expanded_keep if e not in ALL_NL_ENTITY_TYPES and e in custom_names]
+        built_in = [e for e in ALL_NL_ENTITY_TYPES if e in keep]
+        extras = [e for e in keep if e not in ALL_NL_ENTITY_TYPES and e in custom_names]
         return built_in + extras
 
     if ignore is not None:
-        expanded_ignore = set(_expand(ignore))
-        built_in = [e for e in ALL_NL_ENTITY_TYPES if e not in expanded_ignore]
-        extras = [e for e in custom_names if e not in expanded_ignore and e not in built_in]
+        built_in = [e for e in ALL_NL_ENTITY_TYPES if e not in ignore]
+        extras = [e for e in custom_names if e not in ignore and e not in built_in]
         return built_in + extras
 
     return None

@@ -57,22 +57,17 @@ def _apply_tag_guard(
     text: str,
     analyzer_results: list,
     extra_entities: Optional[List[str]] = None,
-    label_mapping: Optional[Dict[str, str]] = None,
 ) -> str:
     """
-    Replace each detected span with a bracket label.
+    Replace each detected span with a bracket label using the raw entity type.
 
-    When *label_mapping* is provided the display label is resolved via the
-    mapping (grouped mode); otherwise the entity_type is used directly.
-    Known entity types fall back to ``[PII]`` only when no mapping is active.
+    Known entity types produce ``[ENTITY_TYPE]``; unknown/custom types fall
+    back to ``[PII]`` unless they appear in *extra_entities*.
     """
     known = _KNOWN_ENTITIES | set(extra_entities or [])
 
     for result in sorted(analyzer_results, key=lambda r: r.start, reverse=True):
-        if label_mapping:
-            display = label_mapping.get(result.entity_type, result.entity_type)
-        else:
-            display = result.entity_type if result.entity_type in known else "PII"
+        display = result.entity_type if result.entity_type in known else "PII"
         text = text[: result.start] + f"[{display}]" + text[result.end:]
 
     return text
@@ -81,13 +76,11 @@ def _apply_tag_guard(
 def _apply_indexed_tagging(
     text: str,
     analyzer_results: list,
-    label_mapping: Optional[Dict[str, str]] = None,
 ) -> str:
     """
     Replace each detected span with an indexed label tag ``[LABEL_N]``.
 
-    When *label_mapping* is provided, counters and deduplication are keyed on
-    the group label so that DATE_1 and TIME_1 merge into DATETIME_1.
+    Counters and deduplication are keyed on the raw entity type.
     """
     counters: Dict[str, int] = {}
     seen_map: Dict[tuple, int] = {}
@@ -95,10 +88,7 @@ def _apply_indexed_tagging(
 
     for result in sorted(analyzer_results, key=lambda r: r.start):
         original = text[result.start: result.end]
-        display = (
-            label_mapping.get(result.entity_type, result.entity_type)
-            if label_mapping else result.entity_type
-        )
+        display = result.entity_type
         key = (display, original)
 
         if key not in seen_map:
@@ -144,7 +134,6 @@ class GuardEngine:
         mode: str = "anonymize",
         extra_entities: Optional[List[str]] = None,
         anonymize_list: Optional[Dict[str, List[str]]] = None,
-        label_mapping: Optional[Dict[str, str]] = None,
     ) -> Dict:
         """
         Process the analyzer findings and guard the text.
@@ -157,9 +146,6 @@ class GuardEngine:
         :param anonymize_list:   Supplemental fake-value pools for custom entity
             types, e.g. ``{"MEDICATION": ["Aspirine", "Ibuprofen"]}``.
             Only used in ``anonymize`` mode.
-        :param label_mapping:    Optional sub_label → group_label dict. When
-            provided, tag/i_tag modes use group labels and ``"type"`` in findings
-            reflects the group label.
         :returns: ``{"guarded_text": str, "findings": list}``
         """
         if mode not in _VALID_MODES:
@@ -170,7 +156,7 @@ class GuardEngine:
 
         findings = [
             {
-                "type": label_mapping.get(r.entity_type, r.entity_type) if label_mapping else r.entity_type,
+                "type": r.entity_type,
                 "start": r.start,
                 "end": r.end,
                 "score": round(r.score, 4),
@@ -184,14 +170,10 @@ class GuardEngine:
                 text, analyzer_results, anonymize_list=anonymize_list
             )
         elif mode == "i_tag":
-            output_text = _apply_indexed_tagging(
-                text, analyzer_results, label_mapping=label_mapping
-            )
+            output_text = _apply_indexed_tagging(text, analyzer_results)
         else:  # tag
             output_text = _apply_tag_guard(
-                text, analyzer_results,
-                extra_entities=extra_entities,
-                label_mapping=label_mapping,
+                text, analyzer_results, extra_entities=extra_entities
             )
 
         logger.info(

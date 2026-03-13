@@ -92,22 +92,22 @@ def test_analyze_text_finding_structure():
 
 def test_analyze_text_detects_bsn():
     types = [r["type"] for r in analyze.text(BSN_TEXT)]
-    assert "IDENTIFIER" in types
+    assert "BSN" in types
 
 
 def test_analyze_text_detects_email():
     types = [r["type"] for r in analyze.text(EMAIL_TEXT)]
-    assert "CONTACT" in types
+    assert "EMAIL_ADDRESS" in types
 
 
 def test_analyze_text_detects_iban():
     types = [r["type"] for r in analyze.text(IBAN_TEXT)]
-    assert "FINANCIAL" in types
+    assert "IBAN_CODE" in types
 
 
 def test_analyze_text_detects_phone():
     types = [r["type"] for r in analyze.text(PHONE_TEXT)]
-    assert "CONTACT" in types
+    assert "PHONE_NUMBER" in types
 
 
 def test_analyze_text_empty_string():
@@ -125,14 +125,14 @@ def test_analyze_text_score_threshold_filters():
 
 
 def test_analyze_text_keep_filter():
-    results = analyze.text(RICH_TEXT, config={"set_entities": {"keep": ["IDENTIFIER"]}})
-    types = {r["type"] for r in results}
-    assert types.issubset({"IDENTIFIER"})
+    results = analyze.text(RICH_TEXT, config={"set_entities": {"keep": ["BSN"]}})
+    named_types = {r["type"] for r in results if r["type"] in set(ALL_NL_ENTITY_TYPES)}
+    assert named_types.issubset({"BSN"})
 
 
 def test_analyze_text_ignore_filter():
-    results = analyze.text(RICH_TEXT, config={"set_entities": {"ignore": ["IDENTIFIER"]}})
-    assert "IDENTIFIER" not in {r["type"] for r in results}
+    results = analyze.text(RICH_TEXT, config={"set_entities": {"ignore": ["BSN"]}})
+    assert "BSN" not in {r["type"] for r in results}
 
 
 # ===========================================================================
@@ -165,13 +165,13 @@ def test_guard_text_anonymize_mode():
 def test_guard_text_tag_mode():
     result = guard.text(BSN_TEXT, config={"mode": "tag"})
     _assert_guard_shape(result)
-    assert "[IDENTIFIER]" in result["guarded_text"]
+    assert "[BSN]" in result["guarded_text"]
 
 
 def test_guard_text_i_tag_mode():
     result = guard.text(BSN_TEXT, config={"mode": "i_tag"})
     _assert_guard_shape(result)
-    assert "[IDENTIFIER_1]" in result["guarded_text"]
+    assert "[BSN_1]" in result["guarded_text"]
 
 
 def test_guard_text_findings_have_original_text():
@@ -315,3 +315,45 @@ def test_invalid_score_threshold_below_zero():
 def test_invalid_guard_mode():
     with pytest.raises(ValueError, match="Unknown guard mode"):
         guard.text("test", config={"mode": "verwijder"})
+
+
+# ===========================================================================
+# 7 — Grouped-labels system removed
+# ===========================================================================
+
+def test_label_groups_not_importable():
+    assert not hasattr(dataguard_deid, "LABEL_GROUPS")
+
+
+def test_grouped_labels_key_raises_in_analyze():
+    with pytest.raises(ValueError, match="unknown config key"):
+        analyze.text(BSN_TEXT, config={"grouped_labels": True})
+
+
+def test_grouped_labels_key_raises_in_guard():
+    with pytest.raises(ValueError, match="unknown config key"):
+        guard.text(BSN_TEXT, config={"grouped_labels": True})
+
+
+def test_analyze_finding_has_no_sub_label():
+    results = analyze.text(RICH_TEXT)
+    for r in results:
+        assert "sub_label" not in r
+
+
+def test_guard_finding_has_no_sub_label():
+    result = guard.text(RICH_TEXT)
+    for f in result["findings"]:
+        assert "sub_label" not in f
+
+
+def test_tag_mode_uses_raw_entity_label():
+    result = guard.text(IBAN_TEXT, config={"mode": "tag"})
+    assert "[IBAN_CODE]" in result["guarded_text"]
+    assert "[FINANCIAL]" not in result["guarded_text"]
+
+
+def test_i_tag_mode_uses_raw_entity_label():
+    result = guard.text(IBAN_TEXT, config={"mode": "i_tag"})
+    assert "[IBAN_CODE_1]" in result["guarded_text"]
+    assert "[FINANCIAL_1]" not in result["guarded_text"]
