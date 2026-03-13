@@ -1,4 +1,4 @@
-﻿"""
+"""
 Rule-based context-awareness engine for post-processing PII detection scores.
 
 Architecture
@@ -81,16 +81,6 @@ CONTEXT_BOOST_RULES: List[ContextBoostRule] = [
         boost=0.45,
         only_if_below=0.50,
         match_in_span=True,
-    ),
-
-    # ── BLOOD_TYPE ────────────────────────────────────────────────────────────
-    ContextBoostRule(
-        entity_type="BLOOD_TYPE",
-        vocabulary=["bloedgroep", "bloedtype", "resusfactor", "rhesus", "donor", "bloed"],
-        boost=0.40,
-        only_if_below=0.60,
-        match_in_span=False,
-        window=100,
     ),
 
     # ── GENDER ────────────────────────────────────────────────────────────────

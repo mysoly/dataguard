@@ -76,7 +76,6 @@ SCORE_PROFILES: dict[str, EntityScoreProfile] = {
 
     # ── Medical / Sensitive ──────────────────────────────────────────────────
     "GENDER":           EntityScoreProfile(base=0.50, with_context=0.75, validated=0.75),
-    "BLOOD_TYPE":       EntityScoreProfile(base=0.40, with_context=0.80, validated=0.80),
     "RELIGION":         EntityScoreProfile(base=0.55, with_context=0.80, validated=0.80),
 
     # ── Geo ──────────────────────────────────────────────────────────────────

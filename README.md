@@ -1,4 +1,4 @@
-﻿# DataGuard DeID — Dutch PII Detection & Anonymization
+# DataGuard DeID — Dutch PII Detection & Anonymization
 
 > **Detect, mask, and anonymize Personally Identifiable Information (PII) in Dutch text and documents.**  
 > Built for Dutch healthcare, GDPR / AVG compliance, and NEN 7510 data-protection pipelines.
@@ -152,7 +152,6 @@ Any other extension raises `UnsupportedFormatError` before the file-existence ch
 | `GPS_COORDINATES` | Latitude / longitude pairs | — |
 | `ZORGPOLIS_NUMBER` | Dutch health insurance policy numbers | — |
 | `GENDER` | Gender references (context-boosted) | — |
-| `BLOOD_TYPE` | Blood group (A/B/AB/O ±) | — |
 | `RELIGION` | Religious affiliation references | — |
 | `UNK_NUMBER` | Catch-all: any unrecognized digit sequence ≥ 3 digits | — |
 

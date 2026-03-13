@@ -23,6 +23,5 @@ ALL_NL_ENTITY_TYPES = [
     "CVV",
     "TIME",
     "GPS_COORDINATES",
-    "BLOOD_TYPE",
     "ZORGPOLIS_NUMBER",
 ]

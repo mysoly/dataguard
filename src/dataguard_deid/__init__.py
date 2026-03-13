@@ -34,7 +34,7 @@ Public interface::
 import types
 from typing import Any, Dict, List, Optional
 
-__version__ = "1.1.0"
+__version__ = "1.2.0"
 
 from dataguard_deid.processors.text_processor import analyze as _analyze, guard as _guard
 from dataguard_deid.processors.doc_processor import (
