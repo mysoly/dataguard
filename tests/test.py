@@ -81,9 +81,8 @@ def test_analyze_text_finding_structure():
     results = analyze.text(BSN_TEXT)
     assert len(results) > 0
     for r in results:
-        assert set(r.keys()) >= {"type", "sub_label", "start", "end", "score"}
+        assert set(r.keys()) >= {"type", "start", "end", "score"}
         assert isinstance(r["type"], str)
-        assert isinstance(r["sub_label"], str)
         assert isinstance(r["start"], int)
         assert isinstance(r["end"], int)
         assert isinstance(r["score"], float)
@@ -92,23 +91,23 @@ def test_analyze_text_finding_structure():
 
 
 def test_analyze_text_detects_bsn():
-    sub_labels = [r["sub_label"] for r in analyze.text(BSN_TEXT)]
-    assert "BSN" in sub_labels
+    types = [r["type"] for r in analyze.text(BSN_TEXT)]
+    assert "IDENTIFIER" in types
 
 
 def test_analyze_text_detects_email():
-    sub_labels = [r["sub_label"] for r in analyze.text(EMAIL_TEXT)]
-    assert "EMAIL_ADDRESS" in sub_labels
+    types = [r["type"] for r in analyze.text(EMAIL_TEXT)]
+    assert "CONTACT" in types
 
 
 def test_analyze_text_detects_iban():
-    sub_labels = [r["sub_label"] for r in analyze.text(IBAN_TEXT)]
-    assert "IBAN_CODE" in sub_labels
+    types = [r["type"] for r in analyze.text(IBAN_TEXT)]
+    assert "FINANCIAL" in types
 
 
 def test_analyze_text_detects_phone():
-    sub_labels = [r["sub_label"] for r in analyze.text(PHONE_TEXT)]
-    assert "PHONE_NUMBER" in sub_labels
+    types = [r["type"] for r in analyze.text(PHONE_TEXT)]
+    assert "CONTACT" in types
 
 
 def test_analyze_text_empty_string():
@@ -126,14 +125,14 @@ def test_analyze_text_score_threshold_filters():
 
 
 def test_analyze_text_keep_filter():
-    results = analyze.text(RICH_TEXT, config={"set_entities": {"keep": ["BSN"]}})
-    sub_labels = {r["sub_label"] for r in results}
-    assert sub_labels.issubset({"BSN"})
+    results = analyze.text(RICH_TEXT, config={"set_entities": {"keep": ["IDENTIFIER"]}})
+    types = {r["type"] for r in results}
+    assert types.issubset({"IDENTIFIER"})
 
 
 def test_analyze_text_ignore_filter():
-    results = analyze.text(RICH_TEXT, config={"set_entities": {"ignore": ["BSN"]}})
-    assert "BSN" not in {r["sub_label"] for r in results}
+    results = analyze.text(RICH_TEXT, config={"set_entities": {"ignore": ["IDENTIFIER"]}})
+    assert "IDENTIFIER" not in {r["type"] for r in results}
 
 
 # ===========================================================================
@@ -147,7 +146,7 @@ def _assert_guard_shape(result: dict) -> None:
     assert isinstance(result["guarded_text"], str)
     assert isinstance(result["findings"], list)
     for f in result["findings"]:
-        assert set(f.keys()) >= {"type", "sub_label", "start", "end", "score", "original_text"}
+        assert set(f.keys()) >= {"type", "start", "end", "score", "original_text"}
 
 
 def test_guard_text_default_is_anonymize():

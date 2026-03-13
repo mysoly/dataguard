@@ -158,8 +158,8 @@ class GuardEngine:
             types, e.g. ``{"MEDICATION": ["Aspirine", "Ibuprofen"]}``.
             Only used in ``anonymize`` mode.
         :param label_mapping:    Optional sub_label → group_label dict. When
-            provided, tag/i_tag modes use group labels; findings include
-            ``"sub_label"`` alongside ``"type"``.
+            provided, tag/i_tag modes use group labels and ``"type"`` in findings
+            reflects the group label.
         :returns: ``{"guarded_text": str, "findings": list}``
         """
         if mode not in _VALID_MODES:
@@ -168,29 +168,16 @@ class GuardEngine:
                 f"Choose from: {sorted(_VALID_MODES)}"
             )
 
-        if label_mapping:
-            findings = [
-                {
-                    "type": label_mapping.get(r.entity_type, r.entity_type),
-                    "sub_label": r.entity_type,
-                    "start": r.start,
-                    "end": r.end,
-                    "score": round(r.score, 4),
-                    "original_text": text[r.start: r.end],
-                }
-                for r in analyzer_results
-            ]
-        else:
-            findings = [
-                {
-                    "type": r.entity_type,
-                    "start": r.start,
-                    "end": r.end,
-                    "score": round(r.score, 4),
-                    "original_text": text[r.start: r.end],
-                }
-                for r in analyzer_results
-            ]
+        findings = [
+            {
+                "type": label_mapping.get(r.entity_type, r.entity_type) if label_mapping else r.entity_type,
+                "start": r.start,
+                "end": r.end,
+                "score": round(r.score, 4),
+                "original_text": text[r.start: r.end],
+            }
+            for r in analyzer_results
+        ]
 
         if mode == "anonymize":
             output_text = _apply_fake_guard(
