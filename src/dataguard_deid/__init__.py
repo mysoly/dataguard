@@ -42,7 +42,7 @@ Public interface::
 from types import SimpleNamespace
 from typing import Any, Dict, List, Optional
 
-__version__ = "1.7.0"
+__version__ = "1.8.0"
 
 from dataguard_deid.processors.text_processor import analyze as _analyze, guard as _guard
 from dataguard_deid.processors.doc_processor import (
@@ -109,7 +109,6 @@ def custom_pattern(
 
 
 from dataguard_deid.config.entities import ALL_NL_ENTITY_TYPES
-from dataguard_deid.config.labels import LABEL_GROUPS
 from dataguard_deid.processors.doc_processor import UnsupportedFormatError
 
 __all__ = [
@@ -117,7 +116,6 @@ __all__ = [
     "guard",
     "custom_pattern",
     "ALL_NL_ENTITY_TYPES",
-    "LABEL_GROUPS",
     "UnsupportedFormatError",
     "__version__",
 ]
