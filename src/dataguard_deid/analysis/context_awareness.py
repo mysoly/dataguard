@@ -24,7 +24,7 @@ from copy import copy
 from dataclasses import dataclass, field
 from typing import List, Optional
 
-from dataguard_deid.core.types import AnalysisExplanation, RecognizerResult
+from dataguard_deid.types import AnalysisExplanation, RecognizerResult
 
 logger = logging.getLogger(__name__)
 
@@ -83,16 +83,6 @@ CONTEXT_BOOST_RULES: List[ContextBoostRule] = [
         match_in_span=True,
     ),
 
-    # ── GENDER ────────────────────────────────────────────────────────────────
-    ContextBoostRule(
-        entity_type="GENDER",
-        vocabulary=["geslacht", "sekse", "aanhef", "gender", "m/v", "m/v/x", "genderidentiteit"],
-        boost=0.30,
-        only_if_below=0.65,
-        match_in_span=False,
-        window=80,
-    ),
-
     # ── TIME ─────────────────────────────────────────────────────────────────
     ContextBoostRule(
         entity_type="TIME",
@@ -124,16 +114,6 @@ CONTEXT_BOOST_RULES: List[ContextBoostRule] = [
         only_if_below=0.70,
         match_in_span=False,
         window=80,
-    ),
-
-    # ── RELIGION ─────────────────────────────────────────────────────────────
-    ContextBoostRule(
-        entity_type="RELIGION",
-        vocabulary=["religie", "geloof", "godsdienst", "levensbeschouwing", "overtuiging", "gezindte"],
-        boost=0.25,
-        only_if_below=0.65,
-        match_in_span=False,
-        window=100,
     ),
 
     # ── GPS_COORDINATES ──────────────────────────────────────────────────────
@@ -170,8 +150,6 @@ class DutchContextEnhancer:
         for rule in rules or CONTEXT_BOOST_RULES:
             self._rules_by_type.setdefault(rule.entity_type, []).append(rule)
 
-    # ------------------------------------------------------------------
-
     def enhance(
         self, text: str, results: List[RecognizerResult]
     ) -> List[RecognizerResult]:
@@ -195,10 +173,6 @@ class DutchContextEnhancer:
                     self._boost(res, rule)
             output.append(res)
         return output
-
-    # ------------------------------------------------------------------
-    # Private helpers
-    # ------------------------------------------------------------------
 
     def _matches(
         self, text_lower: str, res: RecognizerResult, rule: ContextBoostRule

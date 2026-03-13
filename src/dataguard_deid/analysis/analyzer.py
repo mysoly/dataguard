@@ -1,4 +1,4 @@
-﻿"""
+"""
 GuardAnalyzer — central PII analysis engine configured with all Dutch recognizers.
 
 Architecture
@@ -17,6 +17,14 @@ The engine runs the following pipeline on every call:
 
 Singleton pattern with double-checked locking ensures the spaCy model is
 loaded at most once regardless of concurrency.
+
+Public helpers
+--------------
+resolve_entities(set_entities, custom_patterns) → list[str] | None
+    Resolves the entity filter from a config block.
+
+run(text, entities, score_threshold, custom_patterns) → list[RecognizerResult]
+    Convenience wrapper used by processors/.
 """
 
 import logging
@@ -25,19 +33,21 @@ from typing import Any, Dict, List, Optional
 
 import spacy
 
-from dataguard_deid.core.base_recognizer import EntityRecognizer, PatternRecognizer
-from dataguard_deid.core.base_spacy import InternalNlpArtifacts
-from dataguard_deid.core.types import Pattern, RecognizerResult
+from dataguard_deid.recognizers.base import (
+    EntityRecognizer,
+    InternalNlpArtifacts,
+    PatternRecognizer,
+)
+from dataguard_deid.types import Pattern, RecognizerResult
 
 from dataguard_deid.config.entities import ALL_NL_ENTITY_TYPES
 from dataguard_deid.recognizers import ALL_REGEX_RECOGNIZERS, NlNerRecognizer
-from dataguard_deid.guard_engine.overlap_resolver import resolve_overlaps, merge_entities
-from dataguard_deid.guard_engine.context_awareness import DutchContextEnhancer
+from dataguard_deid.analysis.overlap_resolver import resolve_overlaps, merge_entities
+from dataguard_deid.analysis.context_awareness import DutchContextEnhancer
 
 logger = logging.getLogger(__name__)
 
 _ENHANCER = DutchContextEnhancer()
-_INTERNAL_ENTITIES = {"UNK_NUMBER"}
 
 _DEFAULT_NER_SCORE: float = 0.85
 
@@ -215,10 +225,6 @@ class GuardAnalyzer:
         state = self._get_state()
 
         target_entities: List[str] = list(entities or ALL_NL_ENTITY_TYPES)
-        for ie in _INTERNAL_ENTITIES:
-            if ie not in target_entities:
-                target_entities.append(ie)
-
         custom_recognizers = _build_custom_recognizers(custom_patterns, target_entities)
 
         doc = state.nlp(text)
@@ -258,3 +264,79 @@ class GuardAnalyzer:
 
         logger.debug("Analyzed text (%d chars) — %d findings", len(text), len(results))
         return results
+
+
+# ---------------------------------------------------------------------------
+# Public helpers (consumed by processors/)
+# ---------------------------------------------------------------------------
+
+def resolve_entities(
+    set_entities: Optional[Dict],
+    custom_patterns: Optional[List[Dict]] = None,
+) -> Optional[List[str]]:
+    """
+    Resolve the entity filter from a ``set_entities`` config block.
+
+    Parameters
+    ----------
+    set_entities : dict or None
+        ``{"keep": [...]}``  – allowlist: only these types are scanned.
+        ``{"ignore": [...]}`` – denylist: these types are skipped.
+        ``None``              – no filter; scan everything.
+    custom_patterns : list of dicts, optional
+        Custom pattern definitions whose ``name`` keys may appear in ``keep``.
+
+    Returns
+    -------
+    list[str] or None
+        Resolved entity list, or ``None`` if no filtering is required.
+    """
+    if not set_entities:
+        return None
+
+    keep = set_entities.get("keep")
+    ignore = set_entities.get("ignore")
+    custom_names: List[str] = [p["name"] for p in (custom_patterns or []) if "name" in p]
+
+    if keep is not None:
+        if not keep:
+            return []
+        built_in = [e for e in ALL_NL_ENTITY_TYPES if e in keep]
+        extras = [e for e in keep if e not in ALL_NL_ENTITY_TYPES and e in custom_names]
+        return built_in + extras
+
+    if ignore is not None:
+        built_in = [e for e in ALL_NL_ENTITY_TYPES if e not in ignore]
+        extras = [e for e in custom_names if e not in ignore and e not in built_in]
+        return built_in + extras
+
+    return None
+
+
+def run(
+    text: str,
+    entities: Optional[List[str]] = None,
+    score_threshold: float = 0.0,
+    custom_patterns: Optional[List[Dict[str, Any]]] = None,
+) -> List[RecognizerResult]:
+    """
+    Run PII detection on *text* and return raw ``RecognizerResult`` objects.
+
+    Parameters
+    ----------
+    text             : Dutch text to analyse.
+    entities         : Explicit entity-type list (``None`` = scan all).
+    score_threshold  : Minimum score; results below this are dropped.
+    custom_patterns  : Additional user-defined regex patterns.
+
+    Returns
+    -------
+    list[RecognizerResult]
+    """
+    engine = GuardAnalyzer()
+    return engine.analyze(
+        text,
+        entities=entities,
+        score_threshold=score_threshold,
+        custom_patterns=custom_patterns,
+    )

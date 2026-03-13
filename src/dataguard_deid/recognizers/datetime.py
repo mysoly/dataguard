@@ -1,5 +1,5 @@
-﻿"""Temporal PII recognizers: DATE, TIME."""
-from dataguard_deid.core.base_recognizer import PatternRecognizer
+"""DATETIME group recognizers: DATE, TIME."""
+from dataguard_deid.recognizers.base import PatternRecognizer
 
 from dataguard_deid.config.scoring import SCORE_PROFILES
 from dataguard_deid.patterns.dutch_patterns import (
@@ -16,7 +16,6 @@ _T = SCORE_PROFILES["TIME"]
 
 class NlDateRecognizer(PatternRecognizer):
     PATTERNS = [
-        # High-confidence patterns first
         _p("date_iso_ts",      DATE_ISO_TIMESTAMP,    0.90),  # 2024-03-15T13:45:00
         _p("date_en_ordinal",  DATE_EN_ORDINAL,       0.80),  # July 21st, 1998
         _p("date_en_words",    DATE_EN_WORDS,         0.75),  # July 4, 1776

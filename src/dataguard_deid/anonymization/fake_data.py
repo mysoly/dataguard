@@ -5,7 +5,6 @@ The FakeDataProvider hands them out consistently: the same original value
 always maps to the same fake within a single document.
 """
 
-import random
 from itertools import cycle
 from typing import Dict
 
@@ -85,10 +84,6 @@ FAKE_POOLS: Dict[str, list] = {
         "112345670",
         "111000002",
     ],
-    "GENDER": [
-        "man", "vrouw", "persoon",
-        "meneer", "mevrouw", "individu",
-    ],
     "PASSPORT": [
         "XK9876543", "LM2345678", "QR3456789",
         "ST4567890", "UV5678901", "WX6789012",
@@ -108,10 +103,6 @@ FAKE_POOLS: Dict[str, list] = {
         "PD-67-WS", "FJ-89-QA", "BN-12-CE",
         "MR-34-HT", "VK-56-YL", "WD-78-ZP",
         "LT-90-SG",
-    ],
-    "RELIGION": [
-        "niet-religieus", "seculier", "agnostisch",
-        "onbekend", "niet opgegeven",
     ],
     "MAC_ADDRESS": [
         "AA:BB:CC:DD:EE:FF", "11:22:33:44:55:66",
@@ -146,34 +137,13 @@ FAKE_POOLS: Dict[str, list] = {
         "51.8126, 5.8372", "52.7596, 6.9139",
         "51.2434, 6.0561", "50.8514, 5.6909",
     ],
-
     "ZORGPOLIS_NUMBER": [
         "ZP100200300", "VGZ200300400", "CZ30040050",
         "MZ400500600", "1234-5678-9012", "5678-9012-3456",
         "ZS500600700", "OV600700800", "DS70080090",
         "NV800900100",
     ],
-
 }
-
-
-def _length_matched_number(original: str) -> str:
-    """
-    Return a synthetic digit string that mirrors the structure of *original*:
-    every digit position is replaced with a random digit (0–9), and every
-    non-digit character (spaces, dashes, dots, etc.) is kept in place.
-
-    Examples
-    --------
-    "156787"   → "849231"    (6-digit compact code)
-    "156 787"  → "923 451"   (space-separated groups preserved)
-    "12-34-56" → "87-02-19"  (dash separators preserved)
-    """
-    rng = random.Random(original)
-    return "".join(
-        str(rng.randint(0, 9)) if ch.isdigit() else ch
-        for ch in original
-    )
 
 
 class FakeDataProvider:
@@ -193,19 +163,13 @@ class FakeDataProvider:
     def get(self, entity_type: str, original: str) -> str:
         entity_map = self._seen.setdefault(entity_type, {})
         if original not in entity_map:
-            if entity_type == "UNK_NUMBER":
-                fake = _length_matched_number(original)
-                if fake == original:
-                    fake = _length_matched_number(original + "_")
-                entity_map[original] = fake
+            pool = self._cycles.get(entity_type)
+            if pool:
+                for _ in range(len(FAKE_POOLS.get(entity_type, ["_"]))):
+                    candidate = next(pool)
+                    if candidate != original:
+                        break
+                entity_map[original] = candidate
             else:
-                pool = self._cycles.get(entity_type)
-                if pool:
-                    for _ in range(len(FAKE_POOLS.get(entity_type, ["_"]))):
-                        candidate = next(pool)
-                        if candidate != original:
-                            break
-                    entity_map[original] = candidate
-                else:
-                    entity_map[original] = f"[{entity_type}]"
+                entity_map[original] = f"[{entity_type}]"
         return entity_map[original]

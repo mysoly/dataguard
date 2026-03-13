@@ -74,13 +74,6 @@ SCORE_PROFILES: dict[str, EntityScoreProfile] = {
     "IP_ADDRESS":       EntityScoreProfile(base=0.60, with_context=0.80, validated=0.80),
     "MAC_ADDRESS":      EntityScoreProfile(base=0.60, with_context=0.80, validated=0.80),
 
-    # ── Medical / Sensitive ──────────────────────────────────────────────────
-    "GENDER":           EntityScoreProfile(base=0.50, with_context=0.75, validated=0.75),
-    "RELIGION":         EntityScoreProfile(base=0.55, with_context=0.80, validated=0.80),
-
     # ── Geo ──────────────────────────────────────────────────────────────────
     "GPS_COORDINATES":  EntityScoreProfile(base=0.65, with_context=0.85, validated=0.85),
-
-    # ── Unknown / Ambiguous numeric spans ────────────────────────────────────
-    "UNK_NUMBER":       EntityScoreProfile(base=0.25, with_context=0.25, validated=0.25),
 }

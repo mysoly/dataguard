@@ -12,7 +12,7 @@
 
 **DataGuard DeID** is a Python library that detects and anonymizes Dutch PII in both plain text and documents (`.pdf`, `.docx`, `.txt`). It combines:
 
-- **Custom Dutch regex recognizers** — 20+ hand-tuned patterns for Dutch identifiers (BSN, IBAN, Zorgpolis, licence plates, …)
+- **Custom Dutch regex recognizers** — hand-tuned patterns for Dutch identifiers (BSN, IBAN, Zorgpolis, licence plates, …)
 - **spaCy Dutch NER** (`nl_core_news_lg`) — neural named-entity recognition for persons and locations
 - **Algorithmic validation** — elfproef for BSN, mod-97 for IBAN, Luhn for credit cards and IMEI
 - **Context-aware scoring** — keyword windows boost confidence before anonymization decisions
@@ -25,16 +25,15 @@ Use cases: de-identifying patient records, anonymizing clinical notes, sanitizin
 
 | Feature | Detail |
 |---------|--------|
-| **22 entity types** | Full Dutch PII coverage — from BSN and Zorgpolis to GPS coordinates and blood type |
-| **Catch-all number detection** | `UNK_NUMBER` tags any unrecognized digit sequence (≥ 3 digits) not claimed by a named entity |
+| **19 entity types** | Full Dutch PII coverage — from BSN and Zorgpolis to GPS coordinates and IMEI |
 | **3 guard modes** | `anonymize` (realistic Dutch fakes) · `tag` (`[PERSON]`) · `i_tag` (`[PERSON_1]`) |
+| **Grouped labels** | `grouped_labels` option maps sub-labels to high-level groups (e.g. `IBAN_CODE` → `FINANCIAL`) |
 | **Document support** | Reads `.pdf` (pypdf), `.docx` (python-docx), and `.txt` natively |
 | **PDF normalization** | Automatically repairs pypdf extraction artifacts (double spaces, word-per-line scattering) |
 | **Algorithmic validation** | BSN elfproef · IBAN mod-97 · Credit card & IMEI Luhn |
 | **Context-aware scoring** | Keyword windows around matches boost confidence scores before thresholding |
 | **Entity filtering** | `keep` allowlist or `ignore` denylist per call |
 | **Custom patterns** | Plug in your own regex with optional context words and fake-value pools |
-| **Length-matched anonymization** | `UNK_NUMBER` fakes preserve the exact digit count and separator structure of the original |
 | **GDPR / AVG ready** | Designed for Dutch healthcare data pipelines and NEN 7510 technical controls |
 
 ---
@@ -130,30 +129,27 @@ Any other extension raises `UnsupportedFormatError` before the file-existence ch
 
 ## Supported Entity Types
 
-| Entity | Description | Validation |
-|--------|-------------|------------|
-| `PERSON` | Person names | spaCy NER |
-| `LOCATION` | Cities, addresses, regions | spaCy NER |
-| `DATE` | Dates (numeric & Dutch month names) | — |
-| `TIME` | Times (12h / 24h / Dutch "uur") | — |
-| `PHONE_NUMBER` | Dutch mobile & landline, EU format | — |
-| `EMAIL_ADDRESS` | E-mail addresses | — |
-| `ZIPCODE` | Dutch postal codes (`1234 AB`) | — |
-| `URL` | HTTP/HTTPS/FTP links | — |
-| `IBAN_CODE` | Dutch & international IBANs | ✓ ISO 13616 mod-97 |
-| `CREDIT_CARD` | Visa, Mastercard, Amex, Diners, Discover, JCB | ✓ Luhn |
-| `CVV` | Card security codes (context-required) | — |
-| `BSN` | Burgerservicenummer | ✓ Elfproef (11-proef) |
-| `PASSPORT` | Dutch passport numbers | — |
-| `IMEI` | Mobile device identifiers (15 digits) | ✓ Luhn |
-| `LICENCE_PLATE` | Dutch vehicle licence plates | — |
-| `IP_ADDRESS` | IPv4 and IPv6 addresses | — |
-| `MAC_ADDRESS` | Ethernet MAC addresses | — |
-| `GPS_COORDINATES` | Latitude / longitude pairs | — |
-| `ZORGPOLIS_NUMBER` | Dutch health insurance policy numbers | — |
-| `GENDER` | Gender references (context-boosted) | — |
-| `RELIGION` | Religious affiliation references | — |
-| `UNK_NUMBER` | Catch-all: any unrecognized digit sequence ≥ 3 digits | — |
+| Group | Entity | Description | Validation |
+|-------|--------|-------------|------------|
+| — | `PERSON` | Person names | spaCy NER |
+| — | `LOCATION` | Cities, addresses, regions | spaCy NER |
+| `DATETIME` | `DATE` | Dates (numeric & Dutch month names) | — |
+| `DATETIME` | `TIME` | Times (12h / 24h / Dutch "uur") | — |
+| `CONTACT` | `PHONE_NUMBER` | Dutch mobile & landline, EU format | — |
+| `CONTACT` | `EMAIL_ADDRESS` | E-mail addresses | — |
+| `CONTACT` | `URL` | HTTP/HTTPS/FTP links | — |
+| `LOCATION` | `ZIPCODE` | Dutch postal codes (`1234 AB`) | — |
+| `LOCATION` | `GPS_COORDINATES` | Latitude / longitude pairs | — |
+| `FINANCIAL` | `IBAN_CODE` | Dutch & international IBANs | ✓ ISO 13616 mod-97 |
+| `FINANCIAL` | `CREDIT_CARD` | Visa, Mastercard, Amex, Diners, Discover, JCB | ✓ Luhn |
+| `FINANCIAL` | `CVV` | Card security codes (context-required) | — |
+| `IDENTIFIER` | `BSN` | Burgerservicenummer | ✓ Elfproef (11-proef) |
+| `IDENTIFIER` | `PASSPORT` | Dutch passport & driving licence numbers | — |
+| `IDENTIFIER` | `ZORGPOLIS_NUMBER` | Dutch health insurance policy numbers | — |
+| `DEVICE_IDENTIFIER` | `IP_ADDRESS` | IPv4 and IPv6 addresses | — |
+| `DEVICE_IDENTIFIER` | `MAC_ADDRESS` | Ethernet MAC addresses | — |
+| `DEVICE_IDENTIFIER` | `IMEI` | Mobile device identifiers (15 digits) | ✓ Luhn |
+| `VEHICLE_IDENTIFIER` | `LICENCE_PLATE` | Dutch vehicle licence plates | — |
 
 ---
 
@@ -164,8 +160,6 @@ Any other extension raises `UnsupportedFormatError` before the file-existence ch
 | `anonymize` *(default)* | Replace each entity with a realistic Dutch synthetic value | `Jan Bakker`, `111222333`, `NL20 INGB 0001 2345 67` |
 | `tag` | Replace with `[ENTITY_TYPE]` | `[PERSON]`, `[BSN]`, `[IBAN_CODE]` |
 | `i_tag` | Replace with `[ENTITY_TYPE_N]` — same entity type gets the same index | `[PERSON_1]` … `[PERSON_2]` |
-
-`UNK_NUMBER` is anonymized with a **length-matched** random digit string that preserves the original's structure (digits replaced, separators like spaces and dashes kept in place).
 
 ---
 
@@ -178,7 +172,7 @@ All options are passed via a single `config` dict:
 config = {"set_entities": {"keep": ["PERSON", "BSN", "IBAN_CODE"]}}
 
 # Denylist — detect everything except these
-config = {"set_entities": {"ignore": ["DATE", "GENDER"]}}
+config = {"set_entities": {"ignore": ["DATE", "TIME"]}}
 
 # Full config example
 config = {
@@ -192,7 +186,39 @@ config = {
 
     # Custom patterns (see below)
     "custom_patterns": [...],
+
+    # Grouped labels (see below)
+    "grouped_labels": True,
 }
+```
+
+### Grouped Labels
+
+`grouped_labels: True` maps each detected entity to its parent group label.
+Findings gain a `"sub_label"` field with the original entity type, and `"type"` becomes the group name.
+In `tag` / `i_tag` modes the bracket tags use the group label as well.
+
+```python
+from dataguard_deid import analyze, guard, LABEL_GROUPS
+
+text = "BSN: 200000007, IBAN: NL02 ABNA 0456 7890 01, IP: 192.168.1.1"
+
+# analyze — grouped output
+findings = analyze.text(text, config={"grouped_labels": True})
+for f in findings:
+    print(f"[{f['type']}] ({f['sub_label']}) {text[f['start']:f['end']]}")
+# [IDENTIFIER]        (BSN)       200000007
+# [FINANCIAL]         (IBAN_CODE) NL02 ABNA 0456 7890 01
+# [DEVICE_IDENTIFIER] (IP_ADDRESS) 192.168.1.1
+
+# guard — tag mode with group labels
+result = guard.text(text, config={"grouped_labels": True, "mode": "tag"})
+print(result["guarded_text"])
+# "BSN: [IDENTIFIER], IBAN: [FINANCIAL], IP: [DEVICE_IDENTIFIER]"
+
+# Inspect the full mapping
+print(LABEL_GROUPS)
+# {'PERSON': 'PERSON', 'DATE': 'DATETIME', 'TIME': 'DATETIME', ...}
 ```
 
 ### Custom Patterns
@@ -233,25 +259,38 @@ Use `score_threshold` to filter out low-confidence results before anonymization.
 
 ```
 dataguard_deid/
-├── core/
-│   ├── types.py           — internal data structures (RecognizerResult, Pattern, …)
-│   ├── base_recognizer.py — EntityRecognizer / PatternRecognizer base classes
-│   ├── base_spacy.py      — spaCy NER base class
-│   ├── analyzer.py        — analysis engine wrapper + entity resolution
-│   └── guard.py           — guard engine wrapper
+├── types.py              — core data structures (RecognizerResult, Pattern, …)
+├── analysis/
+│   ├── analyzer.py       — PII analysis engine
+│   ├── context_awareness.py  — keyword-based score boosting
+│   └── overlap_resolver.py   — span deduplication & merging
+├── anonymization/
+│   ├── engine.py         — stateless anonymization dispatcher
+│   └── fake_data.py      — synthetic Dutch PII pools
+├── recognizers/
+│   ├── base.py           — EntityRecognizer / PatternRecognizer base classes
+│   ├── contact.py        — PHONE_NUMBER, EMAIL_ADDRESS, URL
+│   ├── datetime.py       — DATE, TIME
+│   ├── device.py         — IP_ADDRESS, MAC_ADDRESS, IMEI
+│   ├── financial.py      — IBAN_CODE, CREDIT_CARD, CVV
+│   ├── identifier.py     — BSN, PASSPORT, ZORGPOLIS_NUMBER
+│   ├── location.py       — ZIPCODE, GPS_COORDINATES
+│   ├── spacy_recognizer.py  — NER recognizer (PERSON, LOCATION)
+│   └── vehicle.py        — LICENCE_PLATE
 ├── processors/
-│   ├── text_processor.py  — analyze / guard pipelines for plain-text input
-│   └── doc_processor.py   — file reading (.pdf / .docx / .txt) + normalization
-├── recognizers/           — 20+ custom Dutch recognizers
-├── patterns/              — Dutch regex patterns & keyword lists
-├── config/                — entity list, scoring profiles
-└── anonymization/         — fake-data pools + FakeDataProvider
+│   ├── text_processor.py — analyze / guard pipelines for plain-text input
+│   └── doc_processor.py  — file reading (.pdf / .docx / .txt) + normalization
+├── config/
+│   ├── entities.py       — ALL_NL_ENTITY_TYPES list
+│   ├── labels.py         — LABEL_GROUPS mapping
+│   └── scoring.py        — EntityScoreProfile per entity type
+└── patterns/             — Dutch regex patterns & keyword lists
 ```
 
-The public interface is exposed through two namespace objects in `dataguard_deid/__init__.py`:
+The public interface is exposed through `dataguard_deid/__init__.py`:
 
 ```python
-from dataguard_deid import analyze, guard, custom_pattern
+from dataguard_deid import analyze, guard, custom_pattern, ALL_NL_ENTITY_TYPES, LABEL_GROUPS
 ```
 
 ---
@@ -277,6 +316,7 @@ The [examples/quickstart.ipynb](examples/quickstart.ipynb) notebook covers:
 - Dutch healthcare identifiers (BSN, Zorgpolis)
 - Custom patterns with anonymization pools
 - Entity filtering and score thresholds
+- Grouped labels (`grouped_labels`)
 - Error handling for unsupported file formats
 
 ---
