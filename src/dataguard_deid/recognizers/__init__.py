@@ -1,4 +1,4 @@
-﻿"""
+"""
 Recognizer registry for dataguard_deid.
 
 Imports every domain recognizer and exports:
@@ -29,7 +29,6 @@ from dataguard_deid.recognizers.financial import (
 from dataguard_deid.recognizers.network import NlIpRecognizer, NlMacAddressRecognizer
 from dataguard_deid.recognizers.medical import (
     NlGenderRecognizer,
-    NlBloodTypeRecognizer,
     NlReligionRecognizer,
 )
 from dataguard_deid.recognizers.geo import NlGpsRecognizer, NlLicencePlateRecognizer
@@ -58,7 +57,6 @@ ALL_REGEX_RECOGNIZERS = [
     NlMacAddressRecognizer,
     # ── Medical / Sensitive ──────────────────────────────────────
     NlGenderRecognizer,
-    NlBloodTypeRecognizer,
     NlReligionRecognizer,
     # ── Geo ──────────────────────────────────────────────────────
     NlGpsRecognizer,
@@ -86,7 +84,6 @@ __all__ = [
     "NlIpRecognizer",
     "NlMacAddressRecognizer",
     "NlGenderRecognizer",
-    "NlBloodTypeRecognizer",
     "NlReligionRecognizer",
     "NlGpsRecognizer",
     "NlLicencePlateRecognizer",

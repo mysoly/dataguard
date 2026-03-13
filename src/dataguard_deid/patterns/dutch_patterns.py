@@ -1,4 +1,4 @@
-﻿"""
+"""
 Dutch-specific regex patterns for PII detection.
 Covers dates, phones, emails, zip codes, financial data,
 BSN, gender, passport, IP, licence plates, religion, MAC,
@@ -202,9 +202,6 @@ TIME_REGEX = (
 
 # ──────────────────────────── GPS COORDINATES ──────────────────
 GPS_REGEX = r"-?\d{1,3}\.\d{3,8}\s*[,;]\s*-?\d{1,3}\.\d{3,8}"
-
-# ──────────────────────────── BLOOD TYPE ───────────────────────
-BLOOD_TYPE_REGEX = r"(?<!\w)(?:A|B|AB|O)[+-](?!\w)"
 
 # ──────────────────────────── ZORGPOLIS NUMBER ─────────────────
 # Numeric-only policy number (10–12 digits).
