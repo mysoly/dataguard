@@ -1,4 +1,4 @@
-﻿"""
+"""
 Base recognizer classes for all Dutch PII recognizers.
 
 Classes
@@ -245,6 +245,9 @@ class PatternRecognizer(EntityRecognizer):
         :param regex_flags: optional override of global_regex_flags
         :return: list of RecognizerResult
         """
+        if not any(e in entities for e in self.supported_entities):
+            return []
+
         results: List[RecognizerResult] = []
         if self.patterns:
             results.extend(self._analyze_patterns(text, regex_flags))
