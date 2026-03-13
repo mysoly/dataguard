@@ -10,7 +10,7 @@ from dataguard_deid.analysis import analyzer as _analyzer
 from dataguard_deid.anonymization.engine import GuardEngine as _GuardEngine, _VALID_MODES
 from dataguard_deid.config.labels import LABEL_GROUPS
 
-_VALID_ANALYZE_KEYS = frozenset({"set_entities", "score_threshold", "custom_patterns", "grouped_labels"})
+_VALID_ANALYZE_KEYS = frozenset({"set_entities", "score_threshold", "custom_patterns"})
 _VALID_GUARD_KEYS = _VALID_ANALYZE_KEYS | frozenset({"mode"})
 
 
@@ -36,11 +36,6 @@ def _validate_config(cfg: dict, valid_keys: frozenset, caller: str) -> None:
         raise ValueError(
             f"Unknown guard mode {mode!r}. Choose from: {sorted(_VALID_MODES)}"
         )
-    grouped = cfg.get("grouped_labels")
-    if grouped is not None and not isinstance(grouped, bool):
-        raise TypeError(
-            f"grouped_labels must be a bool, got {type(grouped).__name__!r}"
-        )
 
 
 def analyze(text: str, config: Optional[Dict] = None) -> List[Dict]:
@@ -56,21 +51,19 @@ def analyze(text: str, config: Optional[Dict] = None) -> List[Dict]:
                     "set_entities":    {"keep": [...]} or {"ignore": [...]},
                     "score_threshold": 0.5,
                     "custom_patterns": [...],
-                    "grouped_labels":  True,
                 }
 
     Returns
     -------
     list[dict]
-        Each dict: ``{"type": str, "start": int, "end": int, "score": float}``
-        When ``grouped_labels=True``: adds ``"sub_label"`` and ``"type"`` is the
-        group label (e.g. ``"FINANCIAL"`` instead of ``"IBAN_CODE"``).
+        Each dict: ``{"type": str, "sub_label": str, "start": int, "end": int, "score": float}``
+        ``"type"`` is the group label (e.g. ``"FINANCIAL"``).
+        ``"sub_label"`` is the original entity type (e.g. ``"IBAN_CODE"``).
     """
     cfg = config or {}
     _validate_config(cfg, _VALID_ANALYZE_KEYS, "analyze")
     score_threshold = cfg.get("score_threshold", 0.0)
     patterns = cfg.get("custom_patterns") or []
-    grouped = cfg.get("grouped_labels", False)
     entities = _analyzer.resolve_entities(cfg.get("set_entities"), patterns)
 
     results = _analyzer.run(
@@ -80,21 +73,10 @@ def analyze(text: str, config: Optional[Dict] = None) -> List[Dict]:
         custom_patterns=patterns or None,
     )
 
-    if grouped:
-        return [
-            {
-                "type": LABEL_GROUPS.get(r.entity_type, r.entity_type),
-                "sub_label": r.entity_type,
-                "start": r.start,
-                "end": r.end,
-                "score": round(r.score, 4),
-            }
-            for r in results
-        ]
-
     return [
         {
-            "type": r.entity_type,
+            "type": LABEL_GROUPS.get(r.entity_type, r.entity_type),
+            "sub_label": r.entity_type,
             "start": r.start,
             "end": r.end,
             "score": round(r.score, 4),
@@ -117,22 +99,20 @@ def guard(text: str, config: Optional[Dict] = None) -> Dict:
                     "score_threshold": 0.5,
                     "mode":            "anonymize",   # or "tag" / "i_tag"
                     "custom_patterns": [...],
-                    "grouped_labels":  True,
                 }
 
     Returns
     -------
     dict
-        ``guarded_text`` – text with PII replaced.
-        ``findings``     – list of finding dicts (includes ``"sub_label"`` when
-                           ``grouped_labels=True``).
+        ``guarded_text`` – text with PII replaced using group labels in brackets.
+        ``findings``     – list of finding dicts, each with ``"type"`` (group)
+                           and ``"sub_label"`` (original entity type).
     """
     cfg = config or {}
     _validate_config(cfg, _VALID_GUARD_KEYS, "guard")
     score_threshold = cfg.get("score_threshold", 0.0)
     mode = cfg.get("mode", "anonymize")
     patterns = cfg.get("custom_patterns") or []
-    grouped = cfg.get("grouped_labels", False)
     entities = _analyzer.resolve_entities(cfg.get("set_entities"), patterns)
 
     extra_entities = [p["name"] for p in patterns if "name" in p]
@@ -155,5 +135,5 @@ def guard(text: str, config: Optional[Dict] = None) -> Dict:
         mode=mode,
         extra_entities=extra_entities or None,
         anonymize_list=anonymize_list or None,
-        label_mapping=LABEL_GROUPS if grouped else None,
+        label_mapping=LABEL_GROUPS,
     )
