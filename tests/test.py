@@ -1,7 +1,7 @@
-"""
+﻿"""
 tests/test_basic.py
 -------------------
-Smoke and functional tests for careons_deid.
+Smoke and functional tests for dataguard_deid.
 
 Covers:
     - Package-level imports and metadata
@@ -18,8 +18,8 @@ import os
 
 import pytest
 
-import careons_deid
-from careons_deid import (
+import dataguard_deid
+from dataguard_deid import (
     ALL_NL_ENTITY_TYPES,
     UnsupportedFormatError,
     analyze,
@@ -53,8 +53,8 @@ DOCX_FILE = os.path.normpath(os.path.join(_FILES, "medisch_verslag.docx"))
 # ===========================================================================
 
 def test_version_exists():
-    assert isinstance(careons_deid.__version__, str)
-    assert careons_deid.__version__ != ""
+    assert isinstance(dataguard_deid.__version__, str)
+    assert dataguard_deid.__version__ != ""
 
 
 def test_all_nl_entity_types_is_list():

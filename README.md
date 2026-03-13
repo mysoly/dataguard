@@ -1,4 +1,4 @@
-# Careons PII Guard — Dutch PII Detection & Anonymization
+﻿# DataGuard DeID — Dutch PII Detection & Anonymization
 
 > **Detect, mask, and anonymize Personally Identifiable Information (PII) in Dutch text and documents.**  
 > Built for Dutch healthcare, GDPR / AVG compliance, and NEN 7510 data-protection pipelines.
@@ -8,9 +8,9 @@
 
 ---
 
-## What is Careons PII Guard?
+## What is DataGuard DeID?
 
-**Careons PII Guard** is a Python library that detects and anonymizes Dutch PII in both plain text and documents (`.pdf`, `.docx`, `.txt`). It combines:
+**DataGuard DeID** is a Python library that detects and anonymizes Dutch PII in both plain text and documents (`.pdf`, `.docx`, `.txt`). It combines:
 
 - **Custom Dutch regex recognizers** — 20+ hand-tuned patterns for Dutch identifiers (BSN, IBAN, Zorgpolis, licence plates, …)
 - **spaCy Dutch NER** (`nl_core_news_lg`) — neural named-entity recognition for persons and locations
@@ -42,7 +42,7 @@ Use cases: de-identifying patient records, anonymizing clinical notes, sanitizin
 ## Installation
 
 ```bash
-pip install careons-deid
+pip install dataguard-deid
 ```
 
 Download the Dutch spaCy model (required for `PERSON` and `LOCATION` detection):
@@ -63,7 +63,7 @@ pip install python-docx    # DOCX support
 ## Quick Start
 
 ```python
-from careons_deid import analyze, guard
+from dataguard_deid import analyze, guard
 
 text = "Mijn naam is Jan de Vries en ik woon in Amsterdam. Mijn BSN is 123456782."
 
@@ -96,7 +96,7 @@ print(guard.text(text, config={"mode": "i_tag"})["guarded_text"])
 Process files directly — text extraction and PII analysis in one call:
 
 ```python
-from careons_deid import analyze, guard
+from dataguard_deid import analyze, guard
 
 # Analyze a file
 findings = analyze.doc("patient_report.pdf")
@@ -199,7 +199,7 @@ config = {
 ### Custom Patterns
 
 ```python
-from careons_deid import analyze, guard, custom_pattern
+from dataguard_deid import analyze, guard, custom_pattern
 
 emp = custom_pattern(
     name="EMPLOYEE_ID",
@@ -233,7 +233,7 @@ Use `score_threshold` to filter out low-confidence results before anonymization.
 ## Package Layout
 
 ```
-careons_deid/
+dataguard_deid/
 ├── core/
 │   ├── types.py           — internal data structures (RecognizerResult, Pattern, …)
 │   ├── base_recognizer.py — EntityRecognizer / PatternRecognizer base classes
@@ -249,10 +249,10 @@ careons_deid/
 └── anonymization/         — fake-data pools + FakeDataProvider
 ```
 
-The public interface is exposed through two namespace objects in `careons_deid/__init__.py`:
+The public interface is exposed through two namespace objects in `dataguard_deid/__init__.py`:
 
 ```python
-from careons_deid import analyze, guard, custom_pattern
+from dataguard_deid import analyze, guard, custom_pattern
 ```
 
 ---

@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "dataguard-deid"
-version = "1.0.0"
-description = "Careons DeID: PII detection, masking & anonymization for Dutch health tech."
+dynamic = ["version"]
+description = "DataGuard DeID: PII detection, masking & anonymization for Dutch health tech."
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.11"
@@ -44,5 +44,8 @@ Repository = "https://github.com/mysoly/dataguard"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.dynamic]
+version = {attr = "dataguard_deid.__version__"}
+
 [tool.setuptools.package-data]
-"careons_deid" = ["py.typed"]
+"dataguard_deid" = ["py.typed"]
