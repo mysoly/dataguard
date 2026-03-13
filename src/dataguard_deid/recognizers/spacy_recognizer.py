@@ -1,11 +1,11 @@
-﻿"""
+"""
 Custom spaCy-based recognizer for standard NER (PERSON, LOCATION).
 """
 import re
 from typing import List
 
-from dataguard_deid.core.base_spacy import BaseSpacyRecognizer
-from dataguard_deid.core.types import RecognizerResult
+from dataguard_deid.recognizers.base import BaseSpacyRecognizer
+from dataguard_deid.types import RecognizerResult
 
 
 class NlNerRecognizer(BaseSpacyRecognizer):

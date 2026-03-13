@@ -1,18 +1,20 @@
-﻿"""Identity-document PII recognizers: BSN, PASSPORT, IMEI."""
+"""IDENTIFIER group recognizers: BSN, PASSPORT, ZORGPOLIS_NUMBER."""
 import re
 from typing import List
 
-from dataguard_deid.core.base_recognizer import EntityRecognizer, PatternRecognizer
-from dataguard_deid.core.types import AnalysisExplanation, RecognizerResult
+from dataguard_deid.recognizers.base import EntityRecognizer, PatternRecognizer
+from dataguard_deid.types import AnalysisExplanation, RecognizerResult
 
 from dataguard_deid.config.scoring import SCORE_PROFILES, RECOGNIZER_WINDOW_CHARS
-from dataguard_deid.patterns.dutch_patterns import BSN_REGEX_NL, IMEI_REGEX, PASSPORT_LICENCE_NL
+from dataguard_deid.patterns.dutch_patterns import (
+    BSN_REGEX_NL, PASSPORT_LICENCE_NL,
+    ZORGPOLIS_NUMERIC, ZORGPOLIS_ALPHA, ZORGPOLIS_GROUPED,
+)
 from dataguard_deid.recognizers._helpers import _p
-from dataguard_deid.recognizers._utils import luhn_check
 
 _BS = SCORE_PROFILES["BSN"]
 _PA = SCORE_PROFILES["PASSPORT"]
-_IM = SCORE_PROFILES["IMEI"]
+_ZP = SCORE_PROFILES["ZORGPOLIS_NUMBER"]
 
 
 # ---------------------------------------------------------------------------
@@ -30,23 +32,16 @@ class NlBsnRecognizer(EntityRecognizer):
     base             – checksum passes BUT a competing-entity keyword is nearby
                        (negative context: reduces score so the other entity wins
                        in overlap resolution)
-
-    Note on CONTEXT
-    ---------------
-    Positive-context boosting is implemented manually in _score_for_match()
-    by inspecting the surrounding character window.
     """
 
     _WINDOW = RECOGNIZER_WINDOW_CHARS
 
-    # Keywords that confirm a 9-digit number IS a BSN.
     _POSITIVE_CONTEXT = {
         "bsn", "burgerservicenummer", "sofinummer", "sofi",
         "persoonsnummer", "fiscaal nummer", "identificatienummer",
         "id-nummer", "digid",
     }
 
-    # Keywords that indicate the number is NOT a BSN.
     _NEGATIVE_CONTEXT = {
         "zorgpolisnummer", "polisnummer", "verzekeringsnummer", "polisnr",
         "zorgpolis", "zorgverzekering", "verzekeringspolis",
@@ -130,63 +125,95 @@ class NlPassportRecognizer(PatternRecognizer):
 
 
 # ---------------------------------------------------------------------------
-# IMEI — Luhn checksum validation
+# ZORGPOLIS_NUMBER — four-tier scoring
 # ---------------------------------------------------------------------------
 
-class NlImeiRecognizer(EntityRecognizer):
-    """
-    IMEI recognizer with Luhn checksum validation.
+_ZORGPOLIS_STRONG_CONTEXT = {
+    "zorgpolisnummer", "polisnummer", "verzekeringsnummer", "polisnr",
+}
+_ZORGPOLIS_WEAK_CONTEXT = {
+    "zorgpolis", "zorgverzekering", "verzekeringspolis",
+}
+_ZORGPOLIS_INSURER_NAMES = {
+    "vgz", "cz", "zilveren kruis", "menzis", "dsw", "onvz",
+}
 
-    Context boosting is applied manually in analyze() by inspecting the
-    surrounding character window.
+_ZORGPOLIS_PATTERNS = [
+    re.compile(ZORGPOLIS_GROUPED),
+    re.compile(ZORGPOLIS_ALPHA),
+    re.compile(ZORGPOLIS_NUMERIC),
+]
+
+
+class NlZorgpolisRecognizer(EntityRecognizer):
+    """
+    Detects Dutch health insurance policy numbers (Zorgpolisnummer).
+
+    Score tier mapping:
+        high_confidence – explicit label keyword present
+        validated       – weak context + insurer name
+        with_context    – weak context keyword only
+        base            – regex only, no context
     """
 
     _WINDOW = RECOGNIZER_WINDOW_CHARS
 
-    _POSITIVE_CONTEXT = {
-        "imei", "apparaat", "device", "telefoon", "serienummer",
-        "sim", "telefoonidentiteit", "imei-nummer",
-    }
-
     def __init__(self):
-        super().__init__(supported_entities=["IMEI"], supported_language="nl")
+        super().__init__(supported_entities=["ZORGPOLIS_NUMBER"], supported_language="nl")
 
     def load(self):
         pass
 
-    def _window_lower(self, text: str, start: int, end: int) -> str:
+    def _context_window(self, text: str, start: int, end: int) -> str:
         lo = max(0, start - self._WINDOW)
         hi = min(len(text), end + self._WINDOW)
         return text[lo:hi].lower()
 
+    @staticmethod
+    def _pattern_base(pattern_index: int) -> float:
+        if pattern_index == 0:
+            return 0.40
+        elif pattern_index == 1:
+            return 0.10
+        else:
+            return _ZP.base
+
     def analyze(
         self, text: str, entities: List[str], nlp_artifacts=None
     ) -> List[RecognizerResult]:
-        if entities and "IMEI" not in entities:
+        if entities and "ZORGPOLIS_NUMBER" not in entities:
             return []
-        results = []
-        for match in re.finditer(IMEI_REGEX, text):
-            if not luhn_check(match.group(0)):
-                continue
-            window = self._window_lower(text, match.start(), match.end())
-            score = (
-                _IM.high_confidence
-                if any(kw in window for kw in self._POSITIVE_CONTEXT)
-                else _IM.validated
-            )
-            results.append(
-                RecognizerResult(
-                    entity_type="IMEI",
-                    start=match.start(),
-                    end=match.end(),
-                    score=score,
-                    analysis_explanation=AnalysisExplanation(
-                        recognizer=self.__class__.__name__,
-                        original_score=score,
-                        pattern_name="imei_15digit_luhn",
-                        pattern=IMEI_REGEX,
-                        validation_result=True,
-                    ),
+        results: List[RecognizerResult] = []
+        covered: List[tuple] = []
+
+        for pat_idx, pattern in enumerate(_ZORGPOLIS_PATTERNS):
+            for match in pattern.finditer(text):
+                ms, me = match.start(), match.end()
+                if any(cs <= ms and me <= ce for cs, ce in covered):
+                    continue
+
+                window = self._context_window(text, ms, me)
+                has_strong  = any(kw in window for kw in _ZORGPOLIS_STRONG_CONTEXT)
+                has_weak    = any(kw in window for kw in _ZORGPOLIS_WEAK_CONTEXT)
+                has_insurer = any(ins in window for ins in _ZORGPOLIS_INSURER_NAMES)
+
+                if has_strong:
+                    score = _ZP.high_confidence
+                elif has_weak and has_insurer:
+                    score = _ZP.validated
+                elif has_weak:
+                    score = _ZP.with_context
+                else:
+                    score = self._pattern_base(pat_idx)
+
+                results.append(
+                    RecognizerResult(
+                        entity_type="ZORGPOLIS_NUMBER",
+                        start=ms,
+                        end=me,
+                        score=score,
+                    )
                 )
-            )
+                covered.append((ms, me))
+
         return results

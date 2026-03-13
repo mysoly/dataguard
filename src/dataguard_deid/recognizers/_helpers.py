@@ -1,5 +1,5 @@
-﻿"""Shared utility used by all domain recognizer modules."""
-from dataguard_deid.core.types import Pattern
+"""Shared utility used by all domain recognizer modules."""
+from dataguard_deid.types import Pattern
 
 
 def _p(name: str, regex: str, score: float) -> Pattern:

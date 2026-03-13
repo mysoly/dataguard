@@ -1,11 +1,11 @@
-﻿"""
+"""
 Overlap resolution for PII entity matches.
 Handles scenario where multiple recognizers fire on same or closely abutting text.
 """
 from copy import copy
 from typing import List
 
-from dataguard_deid.core.types import RecognizerResult
+from dataguard_deid.types import RecognizerResult
 
 
 def resolve_overlaps(results: List[RecognizerResult]) -> List[RecognizerResult]:
@@ -37,7 +37,7 @@ def merge_entities(results: List[RecognizerResult], max_gap: int = 2) -> List[Re
 
     Creates copies of merged results so the original RecognizerResult objects
     from the analyzer are never mutated (mutation would corrupt the objects
-    shared with the findings dict built in guard_engine.py).
+    shared with the findings dict built in anonymization/engine.py).
     """
     if not results:
         return results

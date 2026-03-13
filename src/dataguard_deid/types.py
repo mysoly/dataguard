@@ -1,4 +1,4 @@
-﻿"""
+"""
 Core data-structure types for PII detection and anonymization.
 
 Classes

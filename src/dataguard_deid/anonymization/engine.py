@@ -1,4 +1,4 @@
-﻿"""
+"""
 GuardEngine — text anonymization engine.  Zero external dependencies.
 
 Modes
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 _VALID_MODES = frozenset({"anonymize", "tag", "i_tag"})
 
 # Entity types that get their own bracket label; anything else → [PII].
-_KNOWN_ENTITIES = frozenset(ALL_NL_ENTITY_TYPES) | {"UNK_NUMBER"}
+_KNOWN_ENTITIES = frozenset(ALL_NL_ENTITY_TYPES)
 
 
 # ---------------------------------------------------------------------------
@@ -37,10 +37,6 @@ def _apply_fake_guard(
 
     Processes spans right-to-left so offsets stay valid after each replacement.
     Within one call, the same original value always maps to the same fake.
-
-    :param anonymize_list: Optional ``{entity_name: [fake_value, ...]}`` dict
-        that supplements (or overrides) the built-in fake pools for custom-
-        pattern entity types.
     """
     provider = FakeDataProvider()
 
@@ -61,34 +57,37 @@ def _apply_tag_guard(
     text: str,
     analyzer_results: list,
     extra_entities: Optional[List[str]] = None,
+    label_mapping: Optional[Dict[str, str]] = None,
 ) -> str:
     """
     Replace each detected span with a bracket label.
 
-    Known entity types produce ``[ENTITY_TYPE]``; unrecognised types fall back
-    to ``[PII]``.
-
-    Spans are processed right-to-left so character offsets remain valid after
-    each replacement.  Overlap resolution is expected to have already been
-    applied by GuardAnalyzer before this function is called.
+    When *label_mapping* is provided the display label is resolved via the
+    mapping (grouped mode); otherwise the entity_type is used directly.
+    Known entity types fall back to ``[PII]`` only when no mapping is active.
     """
     known = _KNOWN_ENTITIES | set(extra_entities or [])
 
     for result in sorted(analyzer_results, key=lambda r: r.start, reverse=True):
-        label = f"[{result.entity_type}]" if result.entity_type in known else "[PII]"
-        text = text[: result.start] + label + text[result.end:]
+        if label_mapping:
+            display = label_mapping.get(result.entity_type, result.entity_type)
+        else:
+            display = result.entity_type if result.entity_type in known else "PII"
+        text = text[: result.start] + f"[{display}]" + text[result.end:]
 
     return text
 
 
-def _apply_indexed_tagging(text: str, analyzer_results: list) -> str:
+def _apply_indexed_tagging(
+    text: str,
+    analyzer_results: list,
+    label_mapping: Optional[Dict[str, str]] = None,
+) -> str:
     """
     Replace each detected span with an indexed label tag ``[LABEL_N]``.
 
-    Each entity type maintains its own counter.  Identical text for the same
-    entity type gets the same index.  For PERSON entities, substring
-    containment is used to consolidate partial-name matches (e.g. "Jan" and
-    "Jan Bakker") under one index.
+    When *label_mapping* is provided, counters and deduplication are keyed on
+    the group label so that DATE_1 and TIME_1 merge into DATETIME_1.
     """
     counters: Dict[str, int] = {}
     seen_map: Dict[tuple, int] = {}
@@ -96,11 +95,15 @@ def _apply_indexed_tagging(text: str, analyzer_results: list) -> str:
 
     for result in sorted(analyzer_results, key=lambda r: r.start):
         original = text[result.start: result.end]
-        key = (result.entity_type, original)
+        display = (
+            label_mapping.get(result.entity_type, result.entity_type)
+            if label_mapping else result.entity_type
+        )
+        key = (display, original)
 
         if key not in seen_map:
             existing_idx = None
-            if result.entity_type == "PERSON":
+            if display == "PERSON":
                 for (etype, old_text), idx in list(seen_map.items()):
                     if etype == "PERSON" and (original in old_text or old_text in original):
                         existing_idx = idx
@@ -109,10 +112,10 @@ def _apply_indexed_tagging(text: str, analyzer_results: list) -> str:
             if existing_idx is not None:
                 seen_map[key] = existing_idx
             else:
-                counters[result.entity_type] = counters.get(result.entity_type, 0) + 1
-                seen_map[key] = counters[result.entity_type]
+                counters[display] = counters.get(display, 0) + 1
+                seen_map[key] = counters[display]
 
-        tag = f"[{result.entity_type}_{seen_map[key]}]"
+        tag = f"[{display}_{seen_map[key]}]"
         indexed_findings.append((result.start, result.end, tag))
 
     for start, end, tag in sorted(indexed_findings, key=lambda x: x[0], reverse=True):
@@ -141,6 +144,7 @@ class GuardEngine:
         mode: str = "anonymize",
         extra_entities: Optional[List[str]] = None,
         anonymize_list: Optional[Dict[str, List[str]]] = None,
+        label_mapping: Optional[Dict[str, str]] = None,
     ) -> Dict:
         """
         Process the analyzer findings and guard the text.
@@ -153,6 +157,9 @@ class GuardEngine:
         :param anonymize_list:   Supplemental fake-value pools for custom entity
             types, e.g. ``{"MEDICATION": ["Aspirine", "Ibuprofen"]}``.
             Only used in ``anonymize`` mode.
+        :param label_mapping:    Optional sub_label → group_label dict. When
+            provided, tag/i_tag modes use group labels; findings include
+            ``"sub_label"`` alongside ``"type"``.
         :returns: ``{"guarded_text": str, "findings": list}``
         """
         if mode not in _VALID_MODES:
@@ -161,26 +168,43 @@ class GuardEngine:
                 f"Choose from: {sorted(_VALID_MODES)}"
             )
 
-        findings = [
-            {
-                "type": r.entity_type,
-                "start": r.start,
-                "end": r.end,
-                "score": round(r.score, 4),
-                "original_text": text[r.start: r.end],
-            }
-            for r in analyzer_results
-        ]
+        if label_mapping:
+            findings = [
+                {
+                    "type": label_mapping.get(r.entity_type, r.entity_type),
+                    "sub_label": r.entity_type,
+                    "start": r.start,
+                    "end": r.end,
+                    "score": round(r.score, 4),
+                    "original_text": text[r.start: r.end],
+                }
+                for r in analyzer_results
+            ]
+        else:
+            findings = [
+                {
+                    "type": r.entity_type,
+                    "start": r.start,
+                    "end": r.end,
+                    "score": round(r.score, 4),
+                    "original_text": text[r.start: r.end],
+                }
+                for r in analyzer_results
+            ]
 
         if mode == "anonymize":
             output_text = _apply_fake_guard(
                 text, analyzer_results, anonymize_list=anonymize_list
             )
         elif mode == "i_tag":
-            output_text = _apply_indexed_tagging(text, analyzer_results)
+            output_text = _apply_indexed_tagging(
+                text, analyzer_results, label_mapping=label_mapping
+            )
         else:  # tag
             output_text = _apply_tag_guard(
-                text, analyzer_results, extra_entities=extra_entities
+                text, analyzer_results,
+                extra_entities=extra_entities,
+                label_mapping=label_mapping,
             )
 
         logger.info(

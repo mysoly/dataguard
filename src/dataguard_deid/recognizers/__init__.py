@@ -7,62 +7,56 @@ Imports every domain recognizer and exports:
   - Individual classes re-exported for direct import convenience.
 """
 
-from dataguard_deid.recognizers.temporal import NlDateRecognizer, NlTimeRecognizer
+from dataguard_deid.recognizers.datetime import NlDateRecognizer, NlTimeRecognizer
 from dataguard_deid.recognizers.contact import (
     NlPhoneRecognizer,
     NlEmailRecognizer,
-    NlZipcodeRecognizer,
     NlUrlRecognizer,
 )
-from dataguard_deid.recognizers.identity import (
+from dataguard_deid.recognizers.location import NlZipcodeRecognizer, NlGpsRecognizer
+from dataguard_deid.recognizers.identifier import (
     NlBsnRecognizer,
     NlPassportRecognizer,
-    NlImeiRecognizer,
+    NlZorgpolisRecognizer,
 )
 from dataguard_deid.recognizers.financial import (
     NlIbanRecognizer,
     NlCreditCardRecognizer,
     NlCvvRecognizer,
-    NlZorgpolisRecognizer,
-    NlUnknownNumberRecognizer,
 )
-from dataguard_deid.recognizers.network import NlIpRecognizer, NlMacAddressRecognizer
-from dataguard_deid.recognizers.medical import (
-    NlGenderRecognizer,
-    NlReligionRecognizer,
+from dataguard_deid.recognizers.device import (
+    NlIpRecognizer,
+    NlMacAddressRecognizer,
+    NlImeiRecognizer,
 )
-from dataguard_deid.recognizers.geo import NlGpsRecognizer, NlLicencePlateRecognizer
+from dataguard_deid.recognizers.vehicle import NlLicencePlateRecognizer
 from dataguard_deid.recognizers.spacy_recognizer import NlNerRecognizer
 
 ALL_REGEX_RECOGNIZERS = [
-    # ── Temporal ─────────────────────────────────────────────────
+    # ── DATETIME ─────────────────────────────────────────────────
     NlDateRecognizer,
     NlTimeRecognizer,
-    # ── Contact ──────────────────────────────────────────────────
+    # ── CONTACT ──────────────────────────────────────────────────
     NlPhoneRecognizer,
     NlEmailRecognizer,
-    NlZipcodeRecognizer,
     NlUrlRecognizer,
-    # ── Identity ─────────────────────────────────────────────────
+    # ── LOCATION ─────────────────────────────────────────────────
+    NlZipcodeRecognizer,
+    NlGpsRecognizer,
+    # ── IDENTIFIER ───────────────────────────────────────────────
     NlBsnRecognizer,
     NlPassportRecognizer,
-    NlImeiRecognizer,
-    # ── Financial ────────────────────────────────────────────────
+    NlZorgpolisRecognizer,
+    # ── FINANCIAL ────────────────────────────────────────────────
     NlIbanRecognizer,
     NlCreditCardRecognizer,
     NlCvvRecognizer,
-    NlZorgpolisRecognizer,
-    # ── Network ──────────────────────────────────────────────────
+    # ── DEVICE_IDENTIFIER ────────────────────────────────────────
     NlIpRecognizer,
     NlMacAddressRecognizer,
-    # ── Medical / Sensitive ──────────────────────────────────────
-    NlGenderRecognizer,
-    NlReligionRecognizer,
-    # ── Geo ──────────────────────────────────────────────────────
-    NlGpsRecognizer,
+    NlImeiRecognizer,
+    # ── VEHICLE_IDENTIFIER ───────────────────────────────────────
     NlLicencePlateRecognizer,
-    # ── Catch-all (must be last) ─────────────────────────────────
-    NlUnknownNumberRecognizer,
 ]
 
 __all__ = [
@@ -72,20 +66,17 @@ __all__ = [
     "NlTimeRecognizer",
     "NlPhoneRecognizer",
     "NlEmailRecognizer",
-    "NlZipcodeRecognizer",
     "NlUrlRecognizer",
+    "NlZipcodeRecognizer",
+    "NlGpsRecognizer",
     "NlBsnRecognizer",
     "NlPassportRecognizer",
-    "NlImeiRecognizer",
+    "NlZorgpolisRecognizer",
     "NlIbanRecognizer",
     "NlCreditCardRecognizer",
     "NlCvvRecognizer",
-    "NlZorgpolisRecognizer",
     "NlIpRecognizer",
     "NlMacAddressRecognizer",
-    "NlGenderRecognizer",
-    "NlReligionRecognizer",
-    "NlGpsRecognizer",
+    "NlImeiRecognizer",
     "NlLicencePlateRecognizer",
-    "NlUnknownNumberRecognizer",
 ]
