@@ -1,33 +1,8 @@
-# Python
 __pycache__/
-*.py[cod]
-*.pyo
-*.pyd
-*.egg
+*.pyc
 *.egg-info/
-dist/
 build/
-.eggs/
-
-# Virtual environments
+dist/
 .venv/
-venv/
-env/
-
-# Testing
+workspace/
 .pytest_cache/
-.coverage
-htmlcov/
-
-# Distribution / packaging
-*.whl
-*.tar.gz
-MANIFEST
-
-# Hatch
-.hatch/
-
-# IDE
-.vscode/
-.idea/
-*.swp
